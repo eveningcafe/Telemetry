@@ -1,0 +1,33 @@
+---
+version: '2.0'
+migrate_instance:
+    description: migrate VMs error connection
+    type: direct
+    input:
+        - instance_id
+        - host_id
+    output:
+        result: <% $.vm_ip %>
+    tasks:
+        send_nova_migrate:
+            action: nova.servers_migrate
+            input:
+              server: <% $.instance_id %>
+            on-success:
+              - wait_for_migration
+        wait_for_migration:
+            action: nova.servers_get server=<% $.instance_id %> host=<% $.host_id %>
+            retry:
+                delay: 10
+                count: 10
+            on-success: 
+              - verify_vm_status
+        verify_vm_status:
+            action: nova.servers_get server=<% $.instance_id %>
+            on-success:
+              - get_vms_ip: <% task(verify_vm_status).result.status = 'ACTIVE' %>
+        get_vms_ip:
+            action: nova.servers.interface_list server=<% $.instance_id %>
+            publish: 
+              vm_ip: <% task(get_vms_ip).result %>
+
