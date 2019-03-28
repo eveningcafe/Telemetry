@@ -4,13 +4,26 @@ transport_url = rabbit://openstack:Welcome123@controller:5672/
 [database]
 connection = mysql+pymysql://mistral:Welcome123@controller:3306/mistral
 [keystone_authtoken]
-www_authenticate_uri = http://controller:5000/v3
-auth_uri = http://controller:5000/v3
-identity_uri = http://controller:5000
+#www_authenticate_uri = http://controller:5000/v3
+#auth_uri = http://controller:5000/v3
+#identity_uri = http://controller:5000
+#auth_version = v3
+#admin_user = mistral
+#admin_password = Welcome123
+#admin_tenant_name = service
+
+auth_protocol = http
+auth_type = password
+auth_url = http://controller:5000/v3
 auth_version = v3
-admin_user = mistral
-admin_password = Welcome123
-admin_tenant_name = service
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = vitrage
+password = Welcome123
+interface = internalURL
+region_name = RegionOne
+memcached_servers = controller:11211
 [matchmaker_redis]
 [oslo_messaging_amqp]
 [oslo_messaging_kafka]
