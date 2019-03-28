@@ -1,0 +1,18 @@
+---
+version: '2.0'
+instance_live_migrate:
+  description: migrate VMs
+  type: direct
+  input:
+    - instance_id
+    - target_host:
+    - block_migration: False
+    - disk_over_commit: False
+  ouput:
+    - instance_working: True
+  tasks:
+    get_vm_ip:
+      action: nova.server_interface_list server=<% $.instance_id %>
+      publish: 
+        vm_ip: <% task(get_vm_ip).result %>
+    
