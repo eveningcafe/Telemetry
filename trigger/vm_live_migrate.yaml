@@ -1,0 +1,111 @@
+---
+version: '2.0'
+instance_live_migrate:
+  description: migrate VMs
+  type: direct
+  input:
+    - instance_id
+    - target_host:
+    - block_migration: False
+    - disk_over_commit: False
+  output:
+    old_host: <% $.old_host %>
+    migrate_status: False
+    # - new_host: <% $.new_host %>
+    # - instance_status: <% $.instance_status %>
+    # - instance_ip: <% $.instance_ip %>
+  tasks:
+    get_host_contain_instance_before:
+      action: nova.servers_find id=<% $.instance_id %>
+      publish:
+        old_host: <% task(get_host_contain_instance_before).result["OS-EXT-SRV-ATTR:host"] %>
+      on-success: live_migrate_instance
+
+    live_migrate_instance:
+       action: nova.servers_live_migrate
+       input:
+         server: <% $.instance_id %>
+         host: <% $.target_host %>
+         block_migration: <% $.block_migration %>
+         disk_over_commit: <% $.disk_over_commit %>
+       retry:
+         delay: 10
+         count: 10
+       on-success: wait_for_instance_migrating
+
+    wait_for_instance_migrating:
+      action: nova.servers_find id=<% $.instance_id %> status="MIGRATING"
+      retry:
+        delay: 3
+        count: 30
+      on-success: wait_for_instance_status_active
+      on-error: send_error_email
+
+    wait_for_instance_status_active:
+      action: nova.servers_find id=<% $.instance_id %> status="ACTIVE"
+      retry:
+        delay: 10
+        count: 10
+      on-success: get_vm_ip
+      on-error: send_error_email
+
+    get_vm_ip:
+      action: nova.server_interface_list server=<% $.instance_id %>
+      publish: 
+        vm_ip: <% task(get_vm_ip).result %>
+
+    send_error_email:
+      action: std.echo output="fail"
+
+    send_success_email:
+      action: std.echo output="success"
+
+
+# status MIGRATING ... RESIZE
+#     wait_for_instance_rebuild:
+#       action: nova.servers_find id=<% $.instance_id %> status="REBUILD"
+#       retry:
+#         delay: 1
+#         count: 30
+#       on-success: check_for_instance_status
+#       on-error: send_error_email
+# # if status before is error, after status expect active else status is status before
+#     check_for_instance_status:
+#       action: nova.servers_find id=<% $.instance_id %> status=<% $.status_before %>
+#       retry:
+#         delay: 10
+#         count: 10
+#       on-success: send_success_email
+#       on-error: send_error_email
+
+#     send_error_email:
+#       action: std.echo output="fail"
+
+#     send_success_email:
+#       action: std.echo output="success"
+
+#    send_error_email:
+#      action: std.email
+#        to_addrs: [admin@demo.com]
+#        subject: ERROR evacuate vm
+#        body: |
+#          We try to evacuate vm <% $.instance_id> when host have prolem but fail
+#          Please look at mistral workflow <% execution().id %> for more detail
+#        from_addr: mistral@yopmail.com
+#        smtp_server: smtp.google.com
+#        smtp_password: SECRET
+#
+#    send_success_email:
+#      action: std.email
+#        to_addrs: [admin@demo.com]
+#        subject: SUCCESS evacuate vm
+#        body: |
+#          We evacuate vm <% $.instance_id> when host have prolem.
+#          Please look at mistral workflow <% execution().id %> for more detail
+#        from_addr: mistral@yopmail.com
+#        smtp_server: smtp.google.com
+#        smtp_password: SECRET
+# json inotu example
+# {
+# "instance_id": "af65df83-014d-4757-962a-f9e4d802323e" 
+# }
