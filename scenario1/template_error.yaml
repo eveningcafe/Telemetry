@@ -1,0 +1,121 @@
+metadata:
+ name: deduce-alarm port host down and port ovs error raise alarm and set state on instance, host, neutron port
+ description: deduce-alarm port host down and port ovs error raise alarm and set state on instance, host, neutron port
+ version: 2
+ type: standard
+definitions:
+ entities:
+  - entity:
+     category: ALARM
+     name: host_nic_down
+     template_id: alarm_port_down
+
+  - entity:
+     category: RESOURCE
+     type: port_host
+     template_id: port_host
+
+  - entity:
+     category: RESOURCE
+     type: port_ovs
+     vitrage_operational_state: ERROR
+     template_id: port_ovs_error
+
+  - entity:
+     category: RESOURCE
+     type: nova.instance
+     template_id: instance
+
+  - entity:
+     category: RESOURCE
+     type: nova.host
+     template_id: host
+
+  - entity:
+     category: RESOURCE
+     type: neutron.network
+     template_id: neutron_network
+
+  - entity:
+     category: RESOURCE
+     type: neutron.port
+     template_id: port_neutron
+
+ relationships:
+  - relationship:
+     source: alarm_port_down
+     target: port_host
+     relationship_type: on
+     template_id : alarm_on_port_host
+
+  - relationship:
+     source: port_host
+     target: host
+     relationship_type: attached
+     template_id : port_host_attached_host
+
+  - relationship:
+     source: port_host
+     target: port_ovs_error
+     relationship_type: connect
+     template_id : port_host_connect_port_ovs
+  - relationship:
+     source: port_ovs_error
+     target: neutron_network
+     relationship_type: attached
+     template_id : port_ovs_attached_network
+
+  - relationship:
+     source: neutron_network
+     target: port_neutron
+     relationship_type: contains
+     template_id : network_contains_neutron_port
+
+  - relationship:
+     source: port_neutron
+     target: instance
+     relationship_type: attached
+     template_id : port_neutron_attached_instance
+
+  - relationship:
+     source: host
+     target: instance
+     relationship_type: contains
+     template_id : host_contains_instance
+
+
+scenarios:
+ - scenario:
+    condition: (port_ovs_error and port_ovs_attached_network and network_contains_neutron_port and port_neutron_attached_instance) and (alarm_on_port_host and port_host_attached_host and host_contains_instance ) and port_host_connect_port_ovs
+    actions:
+     - action:
+        action_type: set_state
+        properties:
+         state: ERROR
+        action_target:
+         target: neutron_network
+     - action:
+        action_type: set_state
+        properties:
+         state: ERROR
+        action_target:
+          target: port_neutron
+     - action:
+        action_type: set_state
+        properties:
+         state: ERROR
+        action_target:
+         target: instance
+     - action:
+        action_type: raise_alarm
+        properties:
+         alarm_name: instance_connect_problem
+         severity: CRITICAL
+        action_target:
+         target: instance
+     - action:
+         action_type: execute_mistral
+         properties:
+           workflow: instance_live_migrate
+           input:
+             instance_id: get_attr(instance,id)
