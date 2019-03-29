@@ -1,0 +1,64 @@
+    ---
+version: '2.0'
+instance_evacuate:
+  type: direct
+  input:
+    - instance_id
+  tasks:
+    get_instance_status_before:
+      action: nova.servers_find id=<% $.instance_id %>
+      publish:
+        status_before: <% task(get_instance_status_before).result.status %>
+      on-success: evacuate_instance
+
+    evacuate_instance:
+       action: nova.servers_evacuate server=<% $.instance_id %>
+       retry:
+         delay: 5
+         count: 5
+       on-success: wait_for_instance_rebuild
+       on-error: send_error_email
+
+    wait_for_instance_rebuild:
+      action: nova.servers_find id=<% $.instance_id %> status="REBUILD"
+      retry:
+        delay: 1
+        count: 30
+      on-success: check_for_instance_status
+      on-error: send_error_email
+# if status before is error, after status expect active else status is status before
+    check_for_instance_status:
+      action: nova.servers_find id=<% $.instance_id %> status=<% $.status_before %>
+      retry:
+        delay: 10
+        count: 10
+      on-success: send_success_email
+      on-error: send_error_email
+
+    send_error_email:
+      action: std.echo output="fail"
+
+    send_success_email:
+      action: std.echo output="success"
+
+#    send_error_email:
+#      action: std.email
+#        to_addrs: [admin@demo.com]
+#        subject: ERROR evacuate vm
+#        body: |
+#          We try to evacuate vm <% $.instance_id> when host have prolem but fail
+#          Please look at mistral workflow <% execution().id %> for more detail
+#        from_addr: mistral@yopmail.com
+#        smtp_server: smtp.google.com
+#        smtp_password: SECRET
+#
+#    send_success_email:
+#      action: std.email
+#        to_addrs: [admin@demo.com]
+#        subject: SUCCESS evacuate vm
+#        body: |
+#          We evacuate vm <% $.instance_id> when host have prolem.
+#          Please look at mistral workflow <% execution().id %> for more detail
+#        from_addr: mistral@yopmail.com
+#        smtp_server: smtp.google.com
+#        smtp_password: SECRET
