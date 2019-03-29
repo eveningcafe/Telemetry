@@ -1,0 +1,43 @@
+---
+version: '2.0'
+host-evacuate:
+  type: direct
+  input:
+    - host_evacuate
+    - force_down_nova_compute: false
+    - ssh_usename:
+    - ssh_password:
+    - command_down_nova_compute: "sudo service nova-compute stop"
+
+  tasks:
+    list_nova_service:
+      wait-before: 300 #time wait nova-compute realised down
+      action: nova.services_list
+      on-complete:
+         - ssh_shut_down_service: <% $.host_evacuate in task(list_nova_service).result.where($.binary = "nova-compute").where($.state = "up").host  and force_down_compute = true %>
+         - list_vms: <% not $.host_evacuate in task(list_nova_service).result.where($.binary = "nova-compute").where($.state = "up").host %>
+
+    ssh_shut_down_service:
+       action: std.ssh
+       input:
+        host: <% $.host_evacuate %>
+        username: <% $.username %>
+        password: <% $.ssh_password %>
+        cmd: <% $.command_down_nova_compute %>
+       on-success: list_vms
+
+    list_vms:
+       action: nova.servers_list
+       input:
+         search_opts:
+           {"host": <% $.host_evacuate %>}
+       publish:
+         vms: <% task(list_vms).result %>
+       on-success: evacuate_instances
+
+    evacuate_instances:
+       with-items: vm in <% $.vms %>
+       workflow: instance_evacuate
+       input :
+         instance_id: <% $.vm.id %>
+         instance_status_expect: <% $.vm.status %>
