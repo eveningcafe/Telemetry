@@ -4,40 +4,48 @@ host-evacuate:
   type: direct
   input:
     - host_evacuate
-    - force_down_nova_compute: false
-    - ssh_usename:
-    - ssh_password:
-    - command_down_nova_compute: "sudo service nova-compute stop"
-
   tasks:
-    list_nova_service:
-      wait-before: 300 #time wait nova-compute realised down
+    get_service_nova_compute_work:
+      wait-before: 3 #time wait nova-compute down confirmed
       action: nova.services_list
-      on-complete:
-         - ssh_shut_down_service: <% $.host_evacuate in task(list_nova_service).result.where($.binary = "nova-compute").where($.state = "up").host  and force_down_compute = true %>
-         - list_vms: <% not $.host_evacuate in task(list_nova_service).result.where($.binary = "nova-compute").where($.state = "up").host %>
+      publish:
+        nova_compute_work: <% task(get_service_nova_compute_work).result.where($.binary = "nova-compute").where($.state = "up").host %>
+      on-complete: controll_flow
 
-    ssh_shut_down_service:
-       action: std.ssh
-       input:
-        host: <% $.host_evacuate %>
-        username: <% $.username %>
-        password: <% $.ssh_password %>
-        cmd: <% $.command_down_nova_compute %>
-       on-success: list_vms
+    controll_flow:
+      action: std.noop
+      on-complete:
+        - send_error_email_1: <% $.host_evacuate in $.nova_compute_work %> # compute up
+        - send_error_email_2: <% not bool($.nova_compute_work) %> # list empty
+        - list_vms: <% (not $.host_evacuate in $.nova_compute_work) and bool($.nova_compute_work) %>
+
+    send_error_email_1:
+      action: std.echo
+      input:
+        output: "Fail when evacuate host <% $.host_evacuate %> caused by nova-compute on host not down"
+
+    send_error_email_2:
+      action: std.echo
+      input:
+        output: "Fail when evacuate host <% $.host_evacuate %> caused by there are no other host compute up"
 
     list_vms:
        action: nova.servers_list
        input:
          search_opts:
            {"host": <% $.host_evacuate %>}
-       publish:
-         vms: <% task(list_vms).result %>
        on-success: evacuate_instances
 
+# instance in error state can't evacuate
     evacuate_instances:
-       with-items: vm in <% $.vms %>
+       with-items: vm in <% task(list_vms).result.where($.status != "ERROR") %>
        workflow: instance_evacuate
        input :
          instance_id: <% $.vm.id %>
-         instance_status_expect: <% $.vm.status %>
+
+    # evacuate_instances:
+    #    with-items: vm in <% $.vms %>
+    #    workflow: instance_evacuate
+    #    input :
+    #      instance_id: <% $.vm.id %>
+    #      instance_status_expect: <% $.vm.status %>
