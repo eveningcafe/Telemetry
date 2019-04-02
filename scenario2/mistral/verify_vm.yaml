@@ -1,0 +1,17 @@
+---
+version: '2.0'
+verify_server:
+  description: check work VMs
+  type: direct
+  input:
+    - server
+  ouput:
+    - instance_pass_test
+    - vm_fixed_ip
+  tasks:
+    get_vm_ip:
+      action: nova.servers_interface_list server=<% $.server %>
+      publish: 
+        vm_fixed_ip: <% task(get_vm_ip).result.fixed_ips.ip_address %>
+        instance_work: True
+    
