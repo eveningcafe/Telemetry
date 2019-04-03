@@ -11,13 +11,18 @@ instance_live_migrate:
   output:
     old_host: <% $.old_host %>
     new_host: <% $.new_host %>
-    instance_work: <% $.instance_work %>
+    instance_pass_test: <% $.instance_pass_test %>
   tasks:
-    get_host_contain_instance_before:
+    get_instance_status_before:
       action: nova.servers_find id=<% $.instance_id %>
       publish:
-        old_host: <% task(get_host_contain_instance_before).result["OS-EXT-SRV-ATTR:host"] %>
-      on-success: live_migrate_instance
+        old_host: <% task(get_instance_status_before).result["OS-EXT-SRV-ATTR:host"] %>
+        instance_name: <% task(get_instance_status_before).result.name %>
+        old_status: <% task(get_instance_status_before).result.status %>
+      on-success: 
+        - live_migrate_instance: <% task(get_instance_status_before).result.status = "ACTIVE" %>
+        - send_fail_email_2: <% task(get_instance_status_before).result.status != "ACTIVE" %>
+      on-error: send_fail_email_1
 
     live_migrate_instance:
        action: nova.servers_live_migrate
@@ -37,61 +42,66 @@ instance_live_migrate:
         delay: 3
         count: 30
       on-success: wait_for_instance_status_active
-      on-error: send_error_email
+      on-error: get_instance_status_when_fail
 
     wait_for_instance_status_active:
       action: nova.servers_find id=<% $.instance_id %> status="ACTIVE"
       retry:
         delay: 10
         count: 30
-      on-success: get_host_contain_vm
-      on-error: send_error_email
-
-    get_host_contain_vm:
-      description: get name vm's host
-      action: nova.servers_find id=<% $.instance_id %>
       publish:
-        new_host: <% task(get_host_contain_vm).result["OS-EXT-SRV-ATTR:host"] %>
-      on-success: check_vm_work
-      on-error: send_error_email
+        new_status: <% task(wait_instance_status_active).result.status %>
+        new_host: <% task(wait_instance_status_active).result["OS-EXT-SRV-ATTR:host"] %>
+      on-success: check_diffrent_host
+      on-error: get_instance_status_when_fail
 
-    check_vm_work:
+    check_diffrent_host:
+      description: get name vm's host
+      action: std.noop
+      on-complete:
+        - test_vm: <% $.status_before = $.status_after and $.host_before != $.host_after %>
+        - send_fail_email_1: <% $.status_before != $.status_after or $.host_before = $.host_after %>
+
+    test_vm:
       workflow: verify_server server=<% $.instance_id %>
       publish:
-        instance_work: <% task(check_vm_work).result.instance_work %>
+        instance_pass_test: <% task(test_vm).result.instance_pass_test %>
       on-success: 
-        - send_success_email: <% task(check_vm_work).result.instance_work = true %>
-        - send_error_email: <% task(check_vm_work).result.instance_work = false %>
+        - send_success_email: <% task(test_vm).result.instance_pass_test = true %>
+        - send_fail_email_2: <% task(test_vm).result.instance_pass_test = false %>
 
-    send_error_email:
-      action: std.echo output="fail"
+    get_instance_status_when_fail:
+      action: nova.servers_find id=<% $.instance_id %>
+      publish:
+        status_after: <% task(get_instance_status_when_fail).result.status %>
+        host_after: <% task(get_instance_status_when_fail).result["OS-EXT-SRV-ATTR:host"] %>
+      on-error: send_fail_email_3
+    
+    send_fail_email_1:
+      action: std.echo 
+      input:
+        output: |
+          Fail when live migrate instance : [ id: <% $.instance_id %> ], cause not found instance with that id.
+
+    send_fail_email_2:
+      action: std.echo 
+      input:
+        output: |
+          Fail when live migrate instance : [ id: <% $.instance_id %> ; name: <% $.instance_nameame %> ; old_status: <% $.old_status %>] 
+    send_fail_email_2:
+      action: std.echo 
+      input:
+        output: |
+          Fail when live migrate instance : [ name: <% $.instance_name %> ; old_status: <% $.status_before %> ; host_before: <% $.host_before %> ].
+          Instance after workflow: [ name: <% $.instance_name %> ; status_after: <% $.status_after %> ; host_after: <% $.host_after %> ]
+          Instance pass test: false
+          Workflow id: <% execution().id %> 
+
 
     send_success_email:
       action: std.echo output="success"
 
 
-# status MIGRATING ... RESIZE
-#     wait_for_instance_rebuild:
-#       action: nova.servers_find id=<% $.instance_id %> status="REBUILD"
-#       retry:
-#         delay: 1
-#         count: 30
-#       on-success: check_for_instance_status
-#       on-error: send_error_email
-# # if status before is error, after status expect active else status is status before
-#     check_for_instance_status:
-#       action: nova.servers_find id=<% $.instance_id %> status=<% $.status_before %>
-#       retry:
-#         delay: 10
-#         count: 10
-#       on-success: send_success_email
-#       on-error: send_error_email
-
-#     send_error_email:
-#       action: std.echo output="fail"
-
-#     send_success_email:
-#       action: std.echo output="success"
 
 #    send_error_email:
 #      action: std.email
