@@ -42,6 +42,7 @@ host-evacuate:
        workflow: instance_evacuate
        input :
          instance_id: <% $.vm.id %>
+         
 
     # evacuate_instances:
     #    with-items: vm in <% $.vms %>
