@@ -1,0 +1,8 @@
+UserParameter=contrackcheck,bash /etc/zabbix/zabbix_agentd.d/conntrack.sh
+
+
+==================
+A=$(/sbin/sysctl -n net.netfilter.nf_conntrack_count)
+B=$(/sbin/sysctl -n net.netfilter.nf_conntrack_max)
+contrack=$(( $A *100 / $B))
+echo $contrack
