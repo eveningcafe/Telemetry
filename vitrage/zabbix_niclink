@@ -1,0 +1,1 @@
+UserParameter=net.if.link[*], if  ip a | grep -Eq ": $1:.*state UP"  ; then echo "1" ; else echo "0" ; fi
