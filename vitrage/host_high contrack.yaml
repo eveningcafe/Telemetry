@@ -1,0 +1,61 @@
+metadata:
+  name: deduce alarm connect to when alarm high contrack on host
+  description: deduce alarm connect to when alarm high contrack on host
+definitions:
+  entities:
+      - entity:
+          template_id: alarm_connect
+          category: ALARM
+          name: connecting problem
+      - entity:
+          template_id: alarm_high_conntrack
+          category: ALARM
+          name: host high conntrack
+          type: zabbix
+      - entity:
+          template_id: instance
+          category: RESOURCE
+          type: nova.instance
+      - entity:
+          template_id: host
+          category: RESOURCE
+          type: nova.host
+  relationships:
+      - relationship:
+          template_id : alarm_connect_on_instance
+          source: alarm_connect
+          target: instance
+          relationship_type: on
+      - relationship:
+          template_id: alarm_high_conntrack_on_host
+          source: alarm_high_conntrack
+          target: host
+          relationship_type: on
+      - relationship:
+          template_id : host_contain_instance
+          source: host
+          target: instance
+          relationship_type: contains
+scenarios:
+    - scenario:
+        condition: host_contain_instance and alarm_high_conntrack_on_host
+        actions:
+            - action:
+                action_type : set_state
+                properties:
+                  state: suboptimal
+                action_target:
+                  target: host
+            - action:
+                action_type : set_state
+                properties:
+                  state: suboptimal
+                action_target:
+                  target: instance
+            - action:
+                action_type : raise_alarm
+                properties:
+                  alarm_name: connect instance problem caused by high conntrack
+                  severity: CRITICAL
+                action_target:
+                  target: instance
