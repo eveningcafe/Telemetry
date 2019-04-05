@@ -1,0 +1,52 @@
+zabbix:
+- zabbix_host: controller port enp4s0f0
+  type: port_host
+  name: controller-port-enp4s0f0
+
+- zabbix_host: controller port enp130s0f0
+  type: port_host
+  name: controller-port-enp130s0f0
+
+- zabbix_host: controller port enp130s0f1
+  type: port_host
+  name: controller-port-enp130s0f1
+
+- zabbix_host: compute02 port enp4s0f0
+  type: port_host
+  name: compute02-port-enp4s0f0
+
+- zabbix_host: SWITCH-01
+  type: switch
+  name: SWITCH-01
+
+- zabbix_host: Port switch01 Gi1-0-21
+  type: port_switch
+  name: switch01-port-g-1-0-21
+
+- zabbix_host: Port switch01 Gi1-0-20
+  type: port_switch
+  name: switch01-port-g-1-0-20
+
+- zabbix_host: Port switch01 Gi1-0-22
+  type: port_switch
+  name: switch01-port-g-1-0-22
+
+- zabbix_host: controller
+  type: nova.host
+  name: controller
+
+- zabbix_host: compute02
+  type: nova.host
+  name: compute02
+
+- zabbix_host: instance08
+  type: nova.instance
+  name: 6d185d46-d50c-49e7-bf5f-925043729e63
+
+- zabbix_host: instance09
+  type: nova.instance
+  name: eff1daed-0d97-4975-abbd-3d3e907aeedf
+
+- zabbix_host: app-netcat
+  type: application
+  name: app-netcat
