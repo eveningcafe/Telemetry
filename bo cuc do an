@@ -1,9 +1,29 @@
-- overview:
-  - bai toan
-  - cong nghe chon
-- chi tiet he thong
-- kich ban: quan trong nhat
-  - tinh hieu qua: so voi viec lam thu cong...
-  - tinh dong gop.
- co con don gian: phan cung, mem, nguoi su dung, can bo sung them gi? neu con thoi luong do an, ket qua hien co.
- 18/4: remide lai.
+Chương I. Tổng quan
+   Trong chương này cần đề cập tới:
+   - Bài toán giám sát hệ thống
+   - Các nghiên cứu/sản phẩm hiện có phục vụ giám sát hệ thống
+   - Đề xuất nhiệm vụ của đề tài, chỉ rõ mục tiêu giải quyết những vấn đề gì, những đóng góp mới gì nếu có.
+   - Mô tả sơ lược về giải pháp, trong đó liệt kê những công nghệ sẽ sử dụng (phần trình bày ở chương II)
+   - Giới thiệu nội dung đồ án
+Chương II. Nền tảng công nghệ
+   - Giới thiệu những công nghệ được sử dụng trong đề tài như đề cập đến ở chương I.
+   - Mỗi phần nội dung, tập trung vào giới thiệu chức năng, kiến trúc, khả năng tích hợp với các hệ thống khác
+Chương III. Phát triển hệ thống giám sát
+3.1. Phân tích
+      - Đối tượng sử dụng của hệ thống
+      - Các chức năng của hệ thống (ca sử dụng), đặc tả cho các ca sử dụng
+3.2. Thiết kế hệ thống
+    3.2.1. Kiến trúc hệ thống, trong đó đặc biệt mô tả kiến trúc với các thành phần công nghệ đã giới thiệu, đồng thời chỉ rõ những thành phần cần bổ sung thêm.
+    3.2.2. Thiết kế 
+       Mô tả các hoạt động của hệ thống để thực hiện các chức năng được nêu trong phần phân tích. Nên sử dụng biểu đồ trình tự để chỉ ra sự tương tác giữa các thành phần của hệ thống.
+       Mô tả thiết kế cơ sở dữ liệu nếu có
+3.3. Xây dựng hệ thống
+   - Những giả định, ràng buộc cần thiết khio xay dựng hệ thống
+   - Chi tiết về việc xây dựng hệ thống
+Chương IV. Thử nghiệm và đánh giá
+4.1. Môi trường thử nghiệm
+4.2. Các kịch bản thử nghiệm
+4.3. Kết quả và đánh giá
+Chương VI. Kết luận
+- Tóm tắt nội dung đã thực hiện, những vấn đề đã giải quyết và những vấn đề chưa giải quyết. 
+- Những dự kiến sẽ thực hiện trong tương la
