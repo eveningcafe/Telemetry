@@ -73,4 +73,3 @@ instance_evacuate:
        from_addr: admin@demo.com
        smtp_server: smtp.google.com
        smtp_password: SECRET
-
