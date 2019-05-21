@@ -1,0 +1,83 @@
+---
+version: '2.0'
+instance migrate:
+ type: direct
+ input:
+   - instance_id
+ tasks:
+   get_instance_status_before:
+     action: nova.servers_get server=<% $.instance_id %>
+     publish:
+       instance_name: <% task(get_instance_status_before).result.name %>
+       status_before: <% task(get_instance_status_before).result.status %>
+       host_before: <% task(get_instance_status_before).result["OS-EXT-SRV-ATTR:host"] %>
+     on-success: migrate_instance
+     on-error: send_error_email
+ 
+   migrate_instance:
+      action: nova.servers_migrate server=<% $.instance_id %>
+      retry:
+        count: 10
+        delay: 30
+      on-success: wait_for_instance_migrate
+      on-error: send_error_email
+ 
+   wait_for_instance_migrate:
+     action: nova.servers_get server=<% $.instance_id %>
+     retry:
+       count: 30
+       delay: 2
+       continue-on: <% task(wait_for_instance_migrate).result.status !="VERIFY_RESIZE" %>
+     on-success: confirm_instance_migrate
+
+   confirm_instance_migrate:
+     action: nova.servers_confirm_resize server=<% $.instance_id %>
+     retry:
+       count: 30
+       delay: 2
+     on-success: wait_instance_status_active
+
+   wait_instance_status_active:
+     action: nova.servers_get server=<% $.instance_id %>
+     retry:
+       delay: 10
+       count: 30
+       continue-on: <% task(wait_instance_status_active).result.status !="ACTIVE" %>
+     on-success: get_instance_status_after
+ 
+   get_instance_status_after:
+     action: nova.servers_get server=<% $.instance_id %>
+     publish:
+       status_after: <% task(get_instance_status_after).result.status %>
+       host_after: <% task(get_instance_status_after).result["OS-EXT-SRV-ATTR:host"] %>
+     on-complete: check_diffrent_host
+   check_diffrent_host:
+     action: std.noop
+     on-complete:
+       - send_success_email: <% $.status_before = $.status_after and $.host_before != $.host_after %>
+       - send_error_email: <% $.status_before != $.status_after or $.host_before = $.host_after %>
+ 
+   send_error_email:
+     action: std.email
+     input:
+       to_addrs: 'admin@demo.com'
+       subject: ERROR evacuate vm
+       body: |
+        We try to migrate vm <% $.instance_id> when host have problem 
+         Please look at mistral workflow <% execution().id %> for more detail
+       from_addr: admin@demo.com
+       smtp_server: smtp.google.com
+       smtp_password: SECRET
+ 
+   send_success_email:
+     action: std.email
+     input:
+       to_addrs: [admin@demo.com]
+       subject: SUCCESS evacuate vm
+       body: |
+         We migrate vm <% $.instance_id> when host have prolem.
+         Please look at mistral workflow <% execution().id %> for more detail
+       from_addr: admin@demo.com
+       smtp_server: smtp.google.com
+       smtp_password: SECRET
+
