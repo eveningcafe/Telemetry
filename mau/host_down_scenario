@@ -1,0 +1,72 @@
+metadata:
+    version: 2
+    name: deduced_alarm_for_all_host_in_error
+    type: standard
+    description: raise deduced alarm for all hosts in error
+definitions:
+    entities:
+        - entity:
+            category: ALARM
+            name: host offline
+            type: kapacitor
+            template_id: host_alarm
+        - entity:
+            category: ALARM
+            name: instance offline
+            template_id: instance_alarm
+        - entity:
+            category: RESOURCE
+            type: nova.host
+            template_id: host
+        - entity:
+            category: RESOURCE
+            type: nova.instance
+            template_id: instance
+    relationships:
+        - relationship:
+            source: host_alarm
+            target: host
+            relationship_type: on
+            template_id : alarm_on_host
+
+        - relationship:
+            source: host
+            target: instance
+            relationship_type: contains
+            template_id : host_contains_instance
+
+        - relationship:
+            source: instance_alarm
+            target: instance
+            relationship_type: on
+            template_id : alarm_on_instance
+
+
+
+scenarios:
+    - scenario:
+        condition: alarm_on_host and host_contains_instance
+        actions:
+            - action:
+               action_type : raise_alarm
+               properties:
+                  alarm_name: instance_offline
+                  severity: critical
+               action_target:
+                  target: instance
+            - action:
+               action_type : execute_mistral
+               properties:
+                  workflow: evacuate_instance
+                  input:
+                    instance_id: get_attr(instance, id)
+                    retries: 5
+
+    - scenario:
+        condition: alarm_on_host and host_contains_instance and alarm_on_instance
+        actions:
+            - action:
+               action_type : add_causal_relationship
+               action_target:
+                  source: host_alarm
+                  target: instance_alarm
