@@ -1,0 +1,51 @@
+metadata:
+    version: 2
+    name: deduced_alarm_for_when_host_in_high_load
+    type: standard
+    description: raise deduced alarm for all hosts in error
+definitions:
+    entities:
+        - entity:
+            category: ALARM
+            name: host high resource usage
+            type: kapacitor
+            template_id: host_alarm
+        - entity:
+            category: RESOURCE
+            type: nova.host
+            template_id: host
+        - entity:
+            category: RESOURCE
+            type: nova.instance
+            template_id: instance
+    relationships:
+        - relationship:
+            source: host_alarm
+            target: host
+            relationship_type: on
+            template_id : alarm_on_host
+
+        - relationship:
+            source: host
+            target: instance
+            relationship_type: contains
+            template_id : host_contains_instance
+
+scenarios:
+    - scenario:
+        condition: alarm_on_host and host_contains_instance
+        actions:
+            - action:
+               action_type : raise_alarm
+               properties:
+                  alarm_name: instance_resource_problem
+                  severity: critical
+               action_target:
+                  target: instance
+            - action:
+               action_type : excute_mistral
+               properties:
+                  workflow: migrate_instance
+                  input:
+                    instance_id: get_attr(instance, id)
+                    retries: 5
