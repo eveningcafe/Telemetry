@@ -1,0 +1,15 @@
+dbrp "telegraf"."autogen"
+
+var period = 120s
+
+var every = 60s
+
+var sys_data = stream
+    |from()
+        .measurement('system')
+        .groupBy('host')
+
+var trigger = sys_data
+    |deadman(0.0, period)
+        .message('host offline')
+        .exec('/usr/bin/python', '/etc/kapacitor/kapacitor_vitrage.py', 'rabbit://openstack:Welcome123@10.240.207.27')
