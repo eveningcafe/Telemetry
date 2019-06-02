@@ -4,7 +4,7 @@ instance_live_migrate:
  type: direct
  input:
    - instance_id
-   - notifi_to_email
+   - notifi_to_email: admin-openstack@gmail.com
  tasks:
    get_instance_status_before:
      action: nova.servers_get server=<% $.instance_id %>
