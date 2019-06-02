@@ -1,0 +1,18 @@
+---
+version: '2.0'
+mail_demo:
+ type: direct
+ input:
+   - notifi_to_email
+ tasks:
+   send_success_email:
+     action: std.email
+     input:
+       to_addrs: [<% $.notifi_to_email %>]
+       subject: SUCCESS live migrate virtual machine
+       body: |
+         test email
+       from_addr: ngohoa211@gmail.com
+       smtp_server: smtp.gmail.com
+       smtp_password: 22111996vn
+
