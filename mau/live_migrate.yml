@@ -4,6 +4,7 @@ instance_live_migrate:
  type: direct
  input:
    - instance_id
+   - notifi_to_email
  tasks:
    get_instance_status_before:
      action: nova.servers_get server=<% $.instance_id %>
@@ -11,11 +12,16 @@ instance_live_migrate:
        instance_name: <% task(get_instance_status_before).result.name %>
        status_before: <% task(get_instance_status_before).result %>
        host_before: <% task(get_instance_status_before).result["OS-EXT-SRV-ATTR:host"] %>
-     on-success: migrate_instance
+     on-success: live_migrate_instance
      on-error: send_error_email
  
-   migrate_instance:
-      action: nova.servers_migrate server=<% $.instance_id %>
+   live_migrate_instance:
+      action: nova.servers_live_migrate 
+      input:
+        server: <% $.instance_id %>
+        block_migration: False
+        disk_over_commit: False
+        host: None
       retry:
         count: 10
         delay: 30
@@ -53,24 +59,24 @@ instance_live_migrate:
    send_error_email:
      action: std.email
      input:
-       to_addrs: 'admin@demo.com'
-       subject: ERROR evacuate vm
+       to_addrs: [<% $.notifi_to_email %>]
+       subject: ERROR live migrate virtual machine
        body: |
-        We try to migrate vm <% $.instance_id> when host have problem 
+        We try to migrate vm <% $.instance_id %> when host have problem 
          Please look at mistral workflow <% execution().id %> for more detail
-       from_addr: admin@demo.com
+       from_addr: ngohoa211@gmail.com
        smtp_server: smtp.google.com
-       smtp_password: SECRET
+       smtp_password: 22111996vn
  
    send_success_email:
      action: std.email
      input:
-       to_addrs: [admin@demo.com]
-       subject: SUCCESS evacuate vm
+       to_addrs: [<% $.notifi_to_email %>]
+       subject: SUCCESS live migrate virtual machine
        body: |
-         We migrate vm <% $.instance_id> when host have prolem.
+         We migrate vm <% $.instance_id %> when host have prolem.
          Please look at mistral workflow <% execution().id %> for more detail
-       from_addr: admin@demo.com
+       from_addr: ngohoa211@gmail.com
        smtp_server: smtp.google.com
-       smtp_password: SECRET
+       smtp_password: 22111996vn
 
