@@ -10,7 +10,7 @@ instance_live_migrate:
      action: nova.servers_get server=<% $.instance_id %>
      publish:
        instance_name: <% task(get_instance_status_before).result.name %>
-       status_before: <% task(get_instance_status_before).result %>
+       status_before: <% task(get_instance_status_before).result.status %>
        host_before: <% task(get_instance_status_before).result["OS-EXT-SRV-ATTR:host"] %>
      on-success: live_migrate_instance
      on-error: send_error_email
@@ -21,7 +21,7 @@ instance_live_migrate:
         server: <% $.instance_id %>
         block_migration: False
         disk_over_commit: False
-        host: None
+        host:
       retry:
         count: 10
         delay: 30
