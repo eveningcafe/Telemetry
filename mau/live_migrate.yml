@@ -65,7 +65,7 @@ instance_live_migrate:
         We try to migrate vm <% $.instance_id %> when host have problem 
          Please look at mistral workflow <% execution().id %> for more detail
        from_addr: ngohoa211@gmail.com
-       smtp_server: smtp.google.com
+       smtp_server: smtp.gmail.com
        smtp_password: 22111996vn
  
    send_success_email:
@@ -77,6 +77,6 @@ instance_live_migrate:
          We migrate vm <% $.instance_id %> when host have prolem.
          Please look at mistral workflow <% execution().id %> for more detail
        from_addr: ngohoa211@gmail.com
-       smtp_server: smtp.google.com
+       smtp_server: smtp.gmail.com
        smtp_password: 22111996vn
 
